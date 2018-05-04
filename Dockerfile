@@ -3,6 +3,8 @@ FROM alpine:3.5
 LABEL maintainer="NGINX Docker Maintainers <docker-maint@nginx.com>"
 
 ENV NGINX_VERSION 1.12.2
+ENV NGINX_MOD_AWS_AUTH_VERSION 7e47ea2e9d451596e69cce9c36a8fa88929949aa
+ENV NGINX_MOD_ZIP_VERSION 255cf540ac53865df93e022bb8c20f1a1e9a54da
 
 RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
 	&& CONFIG="\
@@ -49,6 +51,8 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
 		--with-compat \
 		--with-file-aio \
 		--with-http_v2_module \
+		--add-module=ngx_aws_auth-$NGINX_MOD_AWS_AUTH_VERSION \
+		--add-module=mod_zip-$NGINX_MOD_ZIP_VERSION \
 	" \
 	&& addgroup -S nginx \
 	&& adduser -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx \
@@ -67,6 +71,8 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
 		geoip-dev \
 	&& curl -fSL http://nginx.org/download/nginx-$NGINX_VERSION.tar.gz -o nginx.tar.gz \
 	&& curl -fSL http://nginx.org/download/nginx-$NGINX_VERSION.tar.gz.asc  -o nginx.tar.gz.asc \
+	&& curl -fSL https://github.com/anomalizer/ngx_aws_auth/archive/$NGINX_MOD_AWS_AUTH_VERSION.tar.gz -o ngx_aws_auth.tar.gz \
+	&& curl -fSL https://github.com/evanmiller/mod_zip/archive/$NGINX_MOD_ZIP_VERSION.tar.gz -o mod_zip.tar.gz \
 	&& export GNUPGHOME="$(mktemp -d)" \
 	&& found=''; \
 	for server in \
@@ -84,6 +90,10 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
 	&& mkdir -p /usr/src \
 	&& tar -zxC /usr/src -f nginx.tar.gz \
 	&& rm nginx.tar.gz \
+	&& tar -zxC /usr/src/nginx-$NGINX_VERSION -f ngx_aws_auth.tar.gz \
+	&& rm ngx_aws_auth.tar.gz \
+	&& tar -zxC /usr/src/nginx-$NGINX_VERSION -f mod_zip.tar.gz \
+	&& rm mod_zip.tar.gz \
 	&& cd /usr/src/nginx-$NGINX_VERSION \
 	&& ./configure $CONFIG --with-debug \
 	&& make -j$(getconf _NPROCESSORS_ONLN) \
